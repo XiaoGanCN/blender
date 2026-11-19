@@ -46,14 +46,19 @@ jobs:
           test -f "$ndk_root/build/cmake/android.toolchain.cmake"
           echo "ANDROID_NDK_ROOT=$ndk_root" >> "$GITHUB_ENV"
 
-      - name: Fetch Blender assets and build dependencies
+      - name: Restore Blender 5.3.0 runtime assets
+        run: |
+          archive="$RUNNER_TEMP/blender-5.3.0.tar.xz"
+          curl -fsSL --retry 3 -o "$archive" https://download.blender.org/source/blender-5.3.0.tar.xz
+          python3 build_files/android/restore_release_assets.py "$archive"
+          rm "$archive"
+
+      - name: Fetch prebuilt libraries and Vulkan headers
         env:
           GIT_TERMINAL_PROMPT: "0"
         run: |
-          git config --local lfs.url https://projects.blender.org/blender/blender.git/info/lfs
           git config --global credential.https://projects.blender.org.helper \
             '!f() { printf "username=\npassword=\n"; }; f'
-          git lfs pull
           git -c submodule.lib/linux_x64.update=checkout submodule update \
             --init --depth 1 lib/linux_x64 lib/android_arm64
           vulkan_version=$(sed -nE 's/^set\(VULKAN_VERSION ([0-9.]+)\).*/\1/p' \
