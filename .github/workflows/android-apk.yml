@@ -69,7 +69,21 @@ jobs:
             tar -xz -C "$headers" --strip-components=1 "Vulkan-Headers-${vulkan_version}/include"
 
       - name: Build Android Full with Turnip
-        run: python3 build_files/android/build.py full --turnip
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/blender-build.log"
+          if python3 build_files/android/build.py full --turnip 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          awk '
+            /^[[:space:]]*FAILED:/ || /(^|[[:space:]])(fatal )?error:|^CMake Error|undefined reference|Killed/ {
+              gsub(/%/, "%25")
+              gsub(/\r/, "%0D")
+              print "::error::" substr($0, 1, 1200)
+              if (++count == 8) exit
+            }
+          ' "$log"
+          exit 1
 
       - name: Verify APK signature
         run: |
