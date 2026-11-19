@@ -1,0 +1,60 @@
+name: Android Full Turnip APK
+
+on:
+  push:
+    branches: [android-v5.3.0]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 ninja-build patchelf git-lfs             openjdk-17-jdk python3-pip pkg-config bison flex             libx11-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev             libgl-dev libegl-dev glslang-tools
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> "$GITHUB_ENV"
+          echo "ANDROID_HOST_CC=clang-18" >> "$GITHUB_ENV"
+          echo "ANDROID_HOST_CXX=clang++-18" >> "$GITHUB_ENV"
+
+      - name: Install Android SDK and NDK
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (set +o pipefail; yes | "$sdkmanager" --licenses >/dev/null)
+          "$sdkmanager" --channel=3 "ndk;30.0.14904198-beta1"             "build-tools;35.0.1" "platforms;android-35" "platform-tools"
+
+      - name: Fetch Blender assets and build dependencies
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          git config --local lfs.url https://projects.blender.org/blender/blender.git/info/lfs
+          git config --local credential.https://projects.blender.org.helper             '!f() { printf "username=\npassword=\n"; }; f'
+          git lfs pull
+          git -c submodule.lib/linux_x64.update=checkout submodule update             --init --depth 1 lib/linux_x64 lib/android_arm64
+          vulkan_version=$(sed -nE 's/^set\(VULKAN_VERSION ([0-9.]+)\).*/\1/p'             build_files/build_environment/cmake/versions.cmake)
+          headers=../blender_build_android/lib/vulkan_headers
+          mkdir -p "$headers"
+          curl -fsSL --retry 3 "https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v${vulkan_version}.tar.gz" |
+            tar -xz -C "$headers" --strip-components=1 "Vulkan-Headers-${vulkan_version}/include"
+
+      - name: Build Android Full with Turnip
+        run: python3 build_files/android/build.py full --turnip
+
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose             ../blender_build_android/android_apk_stage_full-turnip/blender-full-turnip.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blender-5.3.0-full-turnip-arm64
+          path: ../blender_build_android/android_apk_stage_full-turnip/blender-full-turnip.apk
+          if-no-files-found: error
+          compression-level: 0
