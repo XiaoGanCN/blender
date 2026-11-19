@@ -240,8 +240,8 @@ if(WIN32)
   if(BUILD_MODE STREQUAL Debug)
     ExternalProject_Add_Step(external_usd after_install
       COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${LIBDIR}/usd/lib/python
-        ${HARVEST_TARGET}/usd/lib/debug/python
+        ${LIBDIR}/usd/lib/site-packages
+        ${HARVEST_TARGET}/usd/lib/debug/site-packages
       COMMAND ${CMAKE_COMMAND} -E copy
         ${LIBDIR}/usd/lib/usd_ms_d.dll
         ${HARVEST_TARGET}/usd/lib/usd_ms_d.dll
@@ -258,7 +258,7 @@ else()
   harvest(external_usd usd/lib/usd usd/lib/usd "*")
   harvest_rpath_python(
     external_usd
-    usd/lib/python/pxr
+    usd/lib/python${PYTHON_SHORT_VERSION}/site-packages/pxr
     python/lib/python${PYTHON_SHORT_VERSION}/site-packages/pxr
     "*"
   )

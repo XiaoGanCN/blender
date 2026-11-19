@@ -115,7 +115,9 @@ class VKRenderPassFallback {
    * references `vk_image_view`. Called when a view is discarded so a recycled
    * view handle can't match a stale cached framebuffer.
    */
-  void discard_framebuffers_for_view(VkImageView vk_image_view, VKDiscardPool &pool);
+  void discard_framebuffers_for_view(VkImageView vk_image_view,
+                                     VKDiscardPool &pool,
+                                     TimelineValue timeline);
 
   int64_t render_pass_count() const
   {

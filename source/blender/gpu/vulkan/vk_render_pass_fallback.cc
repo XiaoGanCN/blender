@@ -215,7 +215,8 @@ VkFramebuffer VKRenderPassFallback::framebuffer_get(
 }
 
 void VKRenderPassFallback::discard_framebuffers_for_view(VkImageView vk_image_view,
-                                                         VKDiscardPool &pool)
+                                                         VKDiscardPool &pool,
+                                                         TimelineValue timeline)
 {
   if (vk_device_ == VK_NULL_HANDLE || vk_image_view == VK_NULL_HANDLE) {
     return;
@@ -226,7 +227,7 @@ void VKRenderPassFallback::discard_framebuffers_for_view(VkImageView vk_image_vi
     for (auto item : framebuffers_.items()) {
       for (uint32_t i = 0; i < item.key.view_count; i++) {
         if (item.key.views[i] == vk_image_view) {
-          pool.discard_framebuffer(item.value);
+          pool.discard_framebuffer(item.value, timeline);
           to_remove.append(item.key);
           break;
         }
