@@ -29,7 +29,6 @@ jobs:
             libx11-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev \
             libgl-dev libegl-dev glslang-tools
           echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_VERSION=30.0.14904198" >> "$GITHUB_ENV"
           echo "ANDROID_HOST_CC=clang-18" >> "$GITHUB_ENV"
           echo "ANDROID_HOST_CXX=clang++-18" >> "$GITHUB_ENV"
 
@@ -37,8 +36,15 @@ jobs:
         run: |
           sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           (set +o pipefail; yes | "$sdkmanager" --licenses >/dev/null)
-          "$sdkmanager" --channel=3 "ndk;30.0.14904198" \
-            "build-tools;35.0.1" "platforms;android-35" "platform-tools"
+          "$sdkmanager" "build-tools;35.0.1" "platforms;android-35" "platform-tools"
+          ndk_zip="$RUNNER_TEMP/android-ndk-r30-beta1-linux.zip"
+          curl -fsSL --retry 3 -o "$ndk_zip" https://dl.google.com/android/repository/android-ndk-r30-beta1-linux.zip
+          echo "26b746e5a1e7ac3371f2a862a2f52a7c0740aa8a  $ndk_zip" | sha1sum -c -
+          unzip -q "$ndk_zip" -d "$RUNNER_TEMP"
+          rm "$ndk_zip"
+          ndk_root="$RUNNER_TEMP/android-ndk-r30-beta1"
+          test -f "$ndk_root/build/cmake/android.toolchain.cmake"
+          echo "ANDROID_NDK_ROOT=$ndk_root" >> "$GITHUB_ENV"
 
       - name: Fetch Blender assets and build dependencies
         env:
