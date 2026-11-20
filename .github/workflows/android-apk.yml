@@ -97,14 +97,17 @@ jobs:
           ' "$log"
           exit 1
 
-      - name: Verify APK signature
+      - name: Stage and verify APK
         run: |
+          install -D -m 0644 \
+            ../blender_build_android/android_apk_stage_full-turnip/blender-full-turnip.apk \
+            artifacts/blender-full-turnip.apk
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose \
-            ../blender_build_android/android_apk_stage_full-turnip/blender-full-turnip.apk
+            artifacts/blender-full-turnip.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: blender-5.3.0-full-turnip-arm64
-          path: ../blender_build_android/android_apk_stage_full-turnip/blender-full-turnip.apk
+          path: artifacts/blender-full-turnip.apk
           if-no-files-found: error
           compression-level: 0
